@@ -41,7 +41,7 @@ public extension HTTPClient {
         httpMethod: HTTPMethod,
         input: InputType,
         completion: @escaping (Error?) -> (),
-        handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> Channel
+        handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> EventLoopFuture<Channel>
         where InputType: HTTPRequestInputProtocol {
             return try executeAsyncWithoutOutput(
                 endpointOverride: endpointOverride,
@@ -71,7 +71,7 @@ public extension HTTPClient {
         input: InputType,
         completion: @escaping (Error?) -> (),
         asyncResponseInvocationStrategy: InvocationStrategyType,
-        handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> Channel
+        handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> EventLoopFuture<Channel>
         where InputType: HTTPRequestInputProtocol, InvocationStrategyType: AsyncResponseInvocationStrategy,
         InvocationStrategyType.OutputType == Error? {
             
@@ -101,13 +101,14 @@ public extension HTTPClient {
                                            completion: wrappingCompletion,
                                            handlerDelegate: handlerDelegate)
             
-            channel.closeFuture.whenComplete {
-                // if this channel is being closed and no response has been recorded
-                if !hasComplete {
-                    completion(HTTPClient.unexpectedClosureType)
+            return channel.map { channel in
+                channel.closeFuture.whenComplete {
+                    // if this channel is being closed and no response has been recorded
+                    if !hasComplete {
+                        completion(HTTPClient.unexpectedClosureType)
+                    }
                 }
+                return channel
             }
-            
-            return channel
     }
 }

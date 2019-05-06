@@ -41,7 +41,7 @@ public extension HTTPClient {
             httpMethod: HTTPMethod,
             input: InputType,
             completion: @escaping (HTTPResult<OutputType>) -> (),
-            handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> Channel
+            handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> EventLoopFuture<Channel>
         where InputType: HTTPRequestInputProtocol, OutputType: HTTPResponseOutputProtocol {
             return try executeAsyncWithOutput(
                 endpointOverride: endpointOverride,
@@ -71,7 +71,7 @@ public extension HTTPClient {
             input: InputType,
             completion: @escaping (HTTPResult<OutputType>) -> (),
             asyncResponseInvocationStrategy: InvocationStrategyType,
-            handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> Channel
+            handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> EventLoopFuture<Channel>
             where InputType: HTTPRequestInputProtocol, InvocationStrategyType: AsyncResponseInvocationStrategy,
         InvocationStrategyType.OutputType == HTTPResult<OutputType>,
         OutputType: HTTPResponseOutputProtocol {
@@ -114,13 +114,14 @@ public extension HTTPClient {
                                        completion: wrappingCompletion,
                                        handlerDelegate: handlerDelegate)
 
-        channel.closeFuture.whenComplete {
-            // if this channel is being closed and no response has been recorded
-            if !hasComplete {
-                completion(.error(HTTPClient.unexpectedClosureType))
+            return channel.map { channel in
+                channel.closeFuture.whenComplete {
+                    // if this channel is being closed and no response has been recorded
+                    if !hasComplete {
+                        completion(.error(HTTPClient.unexpectedClosureType))
+                    }
+                }
+                return channel
             }
-        }
-
-        return channel
     }
 }

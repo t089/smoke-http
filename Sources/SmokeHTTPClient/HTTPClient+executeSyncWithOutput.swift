@@ -58,7 +58,7 @@ public extension HTTPClient {
                                                      completion: completion,
                                                      // the completion handler can be safely executed on a SwiftNIO thread
                 asyncResponseInvocationStrategy: SameThreadAsyncResponseInvocationStrategy<HTTPResult<OutputType>>(),
-                handlerDelegate: handlerDelegate)
+                handlerDelegate: handlerDelegate).wait()
             
             channel.closeFuture.whenComplete {
                 // if this channel is being closed and no response has been recorded

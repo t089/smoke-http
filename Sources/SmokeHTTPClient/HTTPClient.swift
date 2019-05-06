@@ -167,7 +167,7 @@ public class HTTPClient {
             httpMethod: HTTPMethod,
             input: InputType,
             completion: @escaping (HTTPResult<HTTPResponseComponents>) -> (),
-            handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> Channel
+            handlerDelegate: HTTPClientChannelInboundHandlerDelegate) throws -> EventLoopFuture<Channel>
             where InputType: HTTPRequestInputProtocol {
 
         let endpointHostName = endpointOverride?.host ?? self.endpointHostName
@@ -236,7 +236,11 @@ public class HTTPClient {
             }
         }
 
-        return try bootstrap.connect(host: endpointHostName, port: endpointPort).wait()
+        let channelFuture = bootstrap.connect(host: endpointHostName, port: endpointPort)
+                channelFuture.whenFailure { (error) in
+                    completion(.error(error))
+                }
+                return channelFuture
     }
     
     /**
